@@ -19,6 +19,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(final Exception ex) {
+        ex.printStackTrace();
         return new ResponseEntity<>("An unexpected error occurred",
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -33,6 +34,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleRegistrationException(final RegistrationException ex) {
         return new ResponseEntity<>("Registration exception occurred",
                 HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex) {
+        return new ResponseEntity<>("Access Denied: You don't have enough rights",
+                org.springframework.http.HttpStatus.FORBIDDEN);
     }
 
     @Override
