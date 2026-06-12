@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class AccommodationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('MANAGER')")
     public AccommodationDto save(@RequestBody @Valid CreateAccommodationRequestDto requestDto) {
         return accommodationService.save(requestDto);
     }
@@ -41,6 +43,7 @@ public class AccommodationController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('MANAGER')")
     public AccommodationDto update(@PathVariable Long id,
                                    @RequestBody @Valid CreateAccommodationRequestDto requestDto) {
         return accommodationService.update(id, requestDto);
@@ -48,6 +51,7 @@ public class AccommodationController {
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('MANAGER')")
     public void deleteById(@PathVariable Long id) {
         accommodationService.deleteById(id);
     }
