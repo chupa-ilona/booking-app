@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/01-create-accommodations-table.yaml
   - include:
       file: db/changelog/changes/02-create-users-and-roles-tables.yaml
+  - include:
+      file: db/changelog/changes/03-create-bookings-table.yaml
