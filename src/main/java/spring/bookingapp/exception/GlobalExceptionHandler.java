@@ -36,6 +36,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(TelegramException.class)
+    public ResponseEntity<Object> handleRegistrationException(final TelegramException ex) {
+        return new ResponseEntity<>("Telegram bot exception occurred",
+                HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDenied(
             org.springframework.security.access.AccessDeniedException ex) {
