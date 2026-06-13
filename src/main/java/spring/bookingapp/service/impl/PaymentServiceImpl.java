@@ -26,6 +26,7 @@ import spring.bookingapp.service.PaymentService;
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
+
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final PaymentMapper paymentMapper;
@@ -46,34 +47,15 @@ public class PaymentServiceImpl implements PaymentService {
                         + requestDto.getBookingId() + " not found"));
 
         long days = ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
-        BigDecimal totalAmount = booking.getAccommodation().getDailyRate().multiply(BigDecimal.valueOf(days));
+        days = days == 0 ? 1 : days;
+        BigDecimal totalAmount = booking.getAccommodation()
+                .getDailyRate()
+                .multiply(BigDecimal.valueOf(days));
 
         long amountInCents = totalAmount.multiply(BigDecimal.valueOf(100)).longValue();
 
         try {
-            SessionCreateParams params = SessionCreateParams.builder()
-                    .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl("http://localhost:8088/payments/success?sessionId={CHECKOUT_SESSION_ID}")
-                    .setCancelUrl("http://localhost:8088/payments/cancel?sessionId={CHECKOUT_SESSION_ID}")
-                    .addLineItem(
-                            SessionCreateParams.LineItem.builder()
-                                    .setQuantity(1L)
-                                    .setPriceData(
-                                            SessionCreateParams.LineItem.PriceData.builder()
-                                                    .setCurrency("usd")
-                                                    .setUnitAmount(amountInCents)
-                                                    .setProductData(
-                                                            SessionCreateParams.LineItem.PriceData
-                                                                    .ProductData.builder()
-                                                                    .setName("Booking accommodation: "
-                                                                            + booking.getAccommodation().getType())
-                                                                    .build()
-                                                    )
-                                                    .build()
-                                    )
-                                    .build()
-                    )
-                    .build();
+            SessionCreateParams params = createStripeSessionParams(booking, amountInCents);
 
             Session session = Session.create(params);
 
@@ -117,5 +99,38 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment.setStatus(PaymentStatus.FAILED);
         return paymentMapper.toDto(paymentRepository.save(payment));
+    }
+
+    private SessionCreateParams createStripeSessionParams(Booking booking, long amountInCents) {
+        return SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(
+                        "http://localhost:8088/payments/success?sessionId={CHECKOUT_SESSION_ID}")
+                .setCancelUrl(
+                        "http://localhost:8088/payments/cancel?sessionId={CHECKOUT_SESSION_ID}")
+                .addLineItem(
+                        SessionCreateParams.LineItem.builder()
+                                .setQuantity(1L)
+                                .setPriceData(
+                                        SessionCreateParams.LineItem.PriceData.builder()
+                                                .setCurrency("usd")
+                                                .setUnitAmount(amountInCents)
+                                                .setProductData(
+                                                        SessionCreateParams
+                                                                .LineItem
+                                                                .PriceData
+                                                                .ProductData
+                                                                .builder()
+                                                                .setName("Booking accommodation: "
+                                                                        + booking
+                                                                        .getAccommodation()
+                                                                        .getType())
+                                                                .build()
+                                                )
+                                                .build()
+                                )
+                                .build()
+                )
+                .build();
     }
 }
