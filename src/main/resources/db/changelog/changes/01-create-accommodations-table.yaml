@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-accommodations-table
+      author: admin
+      changes:
+        - createTable:
+            tableName: accommodations
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: size
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: daily_rate
+                  type: DECIMAL(10, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: availability
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: create-accommodation-amenities-table
+      author: admin
+      changes:
+        - createTable:
+            tableName: accommodation_amenities
+            columns:
+              - column:
+                  name: accommodation_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_amenities_accommodation
+                    references: accommodations(id)
+              - column:
+                  name: amenity
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
