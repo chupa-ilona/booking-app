@@ -17,6 +17,7 @@ import spring.bookingapp.model.User;
 import spring.bookingapp.repository.AccommodationRepository;
 import spring.bookingapp.repository.BookingRepository;
 import spring.bookingapp.service.BookingService;
+import spring.bookingapp.service.NotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +26,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
     private final AccommodationRepository accommodationRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -43,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         Booking savedBooking = bookingRepository.save(booking);
+        notificationService.sendBookingConfirmation(savedBooking);
         return bookingMapper.toDto(savedBooking);
     }
 

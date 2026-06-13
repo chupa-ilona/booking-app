@@ -21,6 +21,7 @@ import spring.bookingapp.model.Payment;
 import spring.bookingapp.model.PaymentStatus;
 import spring.bookingapp.repository.BookingRepository;
 import spring.bookingapp.repository.PaymentRepository;
+import spring.bookingapp.service.NotificationService;
 import spring.bookingapp.service.PaymentService;
 
 @Service
@@ -30,6 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final PaymentMapper paymentMapper;
+    private final NotificationService notificationService;
 
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
@@ -86,6 +88,7 @@ public class PaymentServiceImpl implements PaymentService {
         Booking booking = payment.getBooking();
         booking.setStatus(BookingStatus.CONFIRMED);
         bookingRepository.save(booking);
+        notificationService.sendPaymentSuccessfulMessage(booking);
 
         return paymentMapper.toDto(paymentRepository.save(payment));
     }
