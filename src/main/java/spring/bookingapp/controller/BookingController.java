@@ -1,5 +1,7 @@
 package spring.bookingapp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,8 @@ import spring.bookingapp.dto.BookingDto;
 import spring.bookingapp.dto.CreateBookingRequestDto;
 import spring.bookingapp.service.BookingService;
 
+@Tag(name = "Booking management",
+        description = "Endpoints for managing bookings")
 @RestController
 @RequestMapping("/bookings")
 @RequiredArgsConstructor
@@ -29,23 +33,31 @@ public class BookingController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
+    @Operation(summary = "Create a new booking",
+            description = "Create a new booking for an accommodation.")
     public BookingDto save(@RequestBody @Valid CreateBookingRequestDto requestDto) {
         return bookingService.save(requestDto);
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('MANAGER')")
+    @Operation(summary = "Get all bookings",
+            description = "Get a page of all bookings. Available to managers only.")
     public Page<BookingDto> findAll(Pageable pageable) {
         return bookingService.findAll(pageable);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
+    @Operation(summary = "Get booking by ID",
+            description = "Get details of a specific booking by its ID.")
     public BookingDto getById(@PathVariable Long id) {
         return bookingService.getById(id);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update booking",
+            description = "Update details of a booking. Available to managers only.")
     @PreAuthorize("hasAuthority('MANAGER')")
     public BookingDto update(@PathVariable Long id,
                              @RequestBody @Valid CreateBookingRequestDto requestDto) {
@@ -55,6 +67,8 @@ public class BookingController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
+    @Operation(summary = "Delete booking",
+            description = "Cancel or delete a booking by its ID.")
     public void deleteById(@PathVariable Long id) {
         bookingService.deleteById(id);
     }
