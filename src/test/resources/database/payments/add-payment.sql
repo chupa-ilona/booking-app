@@ -1,0 +1,2 @@
+INSERT INTO payments (id, status, booking_id, session_url, session_id, amount_to_pay, is_deleted)
+VALUES (1, 'PENDING', 1, 'https://checkout.stripe.com/test-session-url', 'cs_test_123456789', 750.00, false);
