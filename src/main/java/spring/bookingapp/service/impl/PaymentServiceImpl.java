@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 import spring.bookingapp.dto.PaymentDto;
 import spring.bookingapp.dto.PaymentRequestDto;
 import spring.bookingapp.exception.EntityNotFoundException;
@@ -105,12 +107,22 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private SessionCreateParams createStripeSessionParams(Booking booking, long amountInCents) {
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+
+        String successUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/payments/success")
+                .queryParam("sessionId", "{CHECKOUT_SESSION_ID}")
+                .build().toUriString();
+
+        String cancelUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/payments/cancel")
+                .queryParam("sessionId", "{CHECKOUT_SESSION_ID}")
+                .build().toUriString();
+
         return SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(
-                        "http://localhost:8088/payments/success?sessionId={CHECKOUT_SESSION_ID}")
-                .setCancelUrl(
-                        "http://localhost:8088/payments/cancel?sessionId={CHECKOUT_SESSION_ID}")
+                .setSuccessUrl(successUrl)
+                .setCancelUrl(cancelUrl)
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -119,14 +131,10 @@ public class PaymentServiceImpl implements PaymentService {
                                                 .setCurrency("usd")
                                                 .setUnitAmount(amountInCents)
                                                 .setProductData(
-                                                        SessionCreateParams
-                                                                .LineItem
-                                                                .PriceData
-                                                                .ProductData
-                                                                .builder()
+                                                        SessionCreateParams.LineItem.PriceData
+                                                                .ProductData.builder()
                                                                 .setName("Booking accommodation: "
-                                                                        + booking
-                                                                        .getAccommodation()
+                                                                        + booking.getAccommodation()
                                                                         .getType())
                                                                 .build()
                                                 )

@@ -15,10 +15,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import spring.bookingapp.dto.BookingDto;
 import spring.bookingapp.dto.CreateBookingRequestDto;
+import spring.bookingapp.model.BookingStatus;
 import spring.bookingapp.service.BookingService;
 
 @Tag(name = "Booking management",
@@ -40,11 +42,15 @@ public class BookingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
     @Operation(summary = "Get all bookings",
-            description = "Get a page of all bookings. Available to managers only.")
-    public Page<BookingDto> findAll(Pageable pageable) {
-        return bookingService.findAll(pageable);
+            description = "Get a page of bookings. Managers can filter by user_id and status."
+                    + " Customers can only see their own bookings.")
+    public Page<BookingDto> findAll(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) BookingStatus status,
+            Pageable pageable) {
+        return bookingService.findAll(userId, status, pageable);
     }
 
     @GetMapping("/{id}")

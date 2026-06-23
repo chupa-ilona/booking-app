@@ -7,4 +7,8 @@ public interface NotificationService {
     void sendBookingConfirmation(Booking booking);
 
     void sendPaymentSuccessfulMessage(Booking booking);
+
+    void sendBookingExpiredMessage(Booking booking);
+
+    void sendNoExpiredBookingsMessage();
 }

@@ -41,4 +41,23 @@ public class TelegramNotificationServiceImpl implements NotificationService {
         );
         telegramBot.sendMessage(message);
     }
+
+    @Override
+    public void sendBookingExpiredMessage(Booking booking) {
+        String message = String.format(
+                "⚠️ Бронювання прострочено та скасовано!\n\n"
+                        + "🆔 Бронювання №: %d\n"
+                        + "👤 Користувач: %s\n"
+                        + "🏠 Житло звільнено: %s",
+                booking.getId(),
+                booking.getUser().getEmail(),
+                booking.getAccommodation().getType()
+        );
+        telegramBot.sendMessage(message);
+    }
+
+    @Override
+    public void sendNoExpiredBookingsMessage() {
+        telegramBot.sendMessage("✅ Перевірка завершена: No expired bookings today!");
+    }
 }

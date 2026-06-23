@@ -1,5 +1,6 @@
 package spring.bookingapp.service.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,8 @@ import spring.bookingapp.repository.AccommodationRepository;
 import spring.bookingapp.repository.BookingRepository;
 import spring.bookingapp.service.BookingService;
 import spring.bookingapp.service.NotificationService;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,17 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Accommodation with id "
                         + requestDto.getAccommodationId() + " not found"));
 
+        boolean isOverlapping = bookingRepository.existsOverlappingBooking(
+                requestDto.getAccommodationId(),
+                requestDto.getCheckInDate(),
+                requestDto.getCheckOutDate(),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+        );
+
+        if (isOverlapping) {
+            throw new IllegalArgumentException("The accommodation is not available for the selected dates");
+        }
+
         Booking booking = bookingMapper.toModel(requestDto);
         booking.setUser(currentUser);
         booking.setAccommodation(accommodation);
@@ -50,8 +64,18 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Page<BookingDto> findAll(Pageable pageable) {
-        return bookingRepository.findAll(pageable)
+    public Page<BookingDto> findAll(Long userId, BookingStatus status, Pageable pageable) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        boolean isManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("MANAGER"));
+
+        if (!isManager) {
+            userId = currentUser.getId();
+        }
+
+        return bookingRepository.findByUserIdAndStatus(userId, status, pageable)
                 .map(bookingMapper::toDto);
     }
 
