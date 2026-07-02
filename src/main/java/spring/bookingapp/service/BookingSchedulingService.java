@@ -21,7 +21,8 @@ public class BookingSchedulingService {
     @Scheduled(cron = "0 0 12 * * ?")
     @Transactional
     public void checkExpiredBookings() {
-        List<Booking> expiredBookings = bookingRepository.findAllByCheckOutDateLessThanEqualAndStatusIn(
+        List<Booking> expiredBookings = bookingRepository
+                .findAllByCheckOutDateLessThanEqualAndStatusIn(
                 LocalDate.now(),
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
         );

@@ -51,8 +51,10 @@ public class PaymentController {
     @GetMapping
     @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
     @Operation(summary = "Get all payments",
-            description = "Get a page of payments. Managers can see all or filter by user ID. Customers see only their own.")
-    public Page<PaymentDto> findAll(@RequestParam(required = false) Long userId, Pageable pageable) {
+            description = "Get a page of payments. "
+                    + "Managers can see all or filter by user ID. Customers see only their own.")
+    public Page<PaymentDto> findAll(@RequestParam(required = false) Long userId,
+                                    Pageable pageable) {
         return paymentService.findAll(userId, pageable);
     }
 }

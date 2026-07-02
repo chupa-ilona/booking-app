@@ -20,8 +20,6 @@ import spring.bookingapp.repository.BookingRepository;
 import spring.bookingapp.service.BookingService;
 import spring.bookingapp.service.NotificationService;
 
-
-
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
@@ -40,7 +38,8 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("Check-in date cannot be in the past");
         }
         if (!requestDto.getCheckOutDate().isAfter(requestDto.getCheckInDate())) {
-            throw new IllegalArgumentException("Check-out date must be strictly after check-in date");
+            throw new IllegalArgumentException("Check-out date must be "
+                    + "strictly after check-in date");
         }
 
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -50,7 +49,8 @@ public class BookingServiceImpl implements BookingService {
                 currentUser.getId(), spring.bookingapp.model.PaymentStatus.PENDING);
 
         if (hasPendingPayments) {
-            throw new IllegalStateException("You cannot create a new booking because you have a pending payment.");
+            throw new IllegalStateException("You cannot create a new booking "
+                    + "because you have a pending payment.");
         }
 
         Accommodation accommodation = accommodationRepository
@@ -66,7 +66,8 @@ public class BookingServiceImpl implements BookingService {
         );
 
         if (overlappingBookingsCount >= accommodation.getAvailability()) {
-            throw new IllegalArgumentException("The accommodation is fully booked for the selected dates");
+            throw new IllegalArgumentException("The accommodation is "
+                    + "fully booked for the selected dates");
         }
 
         Booking booking = bookingMapper.toModel(requestDto);
@@ -85,7 +86,8 @@ public class BookingServiceImpl implements BookingService {
         User currentUser = (User) authentication.getPrincipal();
 
         boolean isManager = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("MANAGER"));
+                .anyMatch(a -> a
+                        .getAuthority().equals("MANAGER"));
 
         if (!isManager) {
             userId = currentUser.getId();
@@ -115,7 +117,8 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public void deleteById(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Booking with id " + id + " not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Booking with id "
+                        + id + " not found"));
 
         if (booking.getStatus() == BookingStatus.CANCELED) {
             throw new IllegalArgumentException("This booking is already canceled.");
