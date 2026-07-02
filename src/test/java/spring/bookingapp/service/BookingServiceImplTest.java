@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import spring.bookingapp.model.BookingStatus;
 import spring.bookingapp.model.User;
 import spring.bookingapp.repository.AccommodationRepository;
 import spring.bookingapp.repository.BookingRepository;
+import spring.bookingapp.repository.PaymentRepository;
 import spring.bookingapp.service.impl.BookingServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,9 @@ class BookingServiceImplTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private PaymentRepository paymentRepository;
+
     @InjectMocks
     private BookingServiceImpl bookingService;
 
@@ -61,6 +66,7 @@ class BookingServiceImplTest {
 
         accommodation = new Accommodation();
         accommodation.setId(1L);
+        accommodation.setAvailability(5);
     }
 
     @AfterEach
@@ -80,6 +86,8 @@ class BookingServiceImplTest {
 
         CreateBookingRequestDto requestDto = new CreateBookingRequestDto();
         requestDto.setAccommodationId(accommodation.getId());
+        requestDto.setCheckInDate(LocalDate.now().plusDays(2));
+        requestDto.setCheckOutDate(LocalDate.now().plusDays(7));
 
         Booking booking = new Booking();
 
@@ -92,8 +100,11 @@ class BookingServiceImplTest {
         BookingDto expectedDto = new BookingDto();
         expectedDto.setId(1L);
 
+        when(paymentRepository.existsByBookingUserIdAndStatus(any(), any())).thenReturn(false);
         when(accommodationRepository.findById(requestDto.getAccommodationId()))
                 .thenReturn(Optional.of(accommodation));
+        when(bookingRepository.countOverlappingBookings(any(), any(), any(), any())).thenReturn(0L);
+
         when(bookingMapper.toModel(requestDto)).thenReturn(booking);
         when(bookingRepository.save(booking)).thenReturn(savedBooking);
         when(bookingMapper.toDto(savedBooking)).thenReturn(expectedDto);
@@ -120,6 +131,10 @@ class BookingServiceImplTest {
 
         CreateBookingRequestDto requestDto = new CreateBookingRequestDto();
         requestDto.setAccommodationId(999L);
+        requestDto.setCheckInDate(LocalDate.now().plusDays(2));
+        requestDto.setCheckOutDate(LocalDate.now().plusDays(7));
+
+        when(paymentRepository.existsByBookingUserIdAndStatus(any(), any())).thenReturn(false);
 
         when(accommodationRepository.findById(requestDto.getAccommodationId()))
                 .thenReturn(Optional.empty());
@@ -132,31 +147,6 @@ class BookingServiceImplTest {
         verify(bookingRepository, times(0)).save(any());
         verify(notificationService, times(0)).sendBookingConfirmation(any());
     }
-
-//    @Test
-//    @DisplayName("Get all bookings")
-//    void findAll_ValidPageable_ReturnsAllBookings() {
-//        // Given
-//        Booking booking = new Booking();
-//        booking.setId(1L);
-//        BookingDto bookingDto = new BookingDto();
-//        bookingDto.setId(1L);
-//
-//        Pageable pageable = PageRequest.of(0, 10);
-//        List<Booking> bookings = List.of(booking);
-//        Page<Booking> bookingPage = new PageImpl<>(bookings, pageable, bookings.size());
-//
-//        when(bookingRepository.findAll(pageable)).thenReturn(bookingPage);
-//        when(bookingMapper.toDto(booking)).thenReturn(bookingDto);
-//
-//        // When
-//        Page<BookingDto> actualPage = bookingService.findAll(pageable,);
-//
-//        // Then
-//        assertEquals(1, actualPage.getTotalElements());
-//        assertEquals(bookingDto.getId(), actualPage.getContent().get(0).getId());
-//        verify(bookingRepository).findAll(pageable);
-//    }
 
     @Test
     @DisplayName("Get booking by Valid ID")
@@ -241,33 +231,39 @@ class BookingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Delete booking by Valid ID")
+    @DisplayName("Cancel booking by Valid ID")
     void deleteById_ValidId_Success() {
         // Given
         Long id = 1L;
-        when(bookingRepository.existsById(id)).thenReturn(true);
+        Booking booking = new Booking();
+        booking.setId(id);
+        booking.setStatus(BookingStatus.PENDING);
+
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
 
         // When
         bookingService.deleteById(id);
 
         // Then
-        verify(bookingRepository).existsById(id);
-        verify(bookingRepository).deleteById(id);
+        assertEquals(BookingStatus.CANCELED, booking.getStatus());
+        verify(bookingRepository).findById(id);
+        verify(bookingRepository).save(booking);
+        verify(notificationService).sendBookingCanceledMessage(booking);
     }
 
     @Test
-    @DisplayName("Delete booking by Invalid ID")
+    @DisplayName("Cancel booking by Invalid ID")
     void deleteById_InvalidId_ThrowsException() {
         // Given
         Long invalidId = 999L;
-        when(bookingRepository.existsById(invalidId)).thenReturn(false);
+        when(bookingRepository.findById(invalidId)).thenReturn(Optional.empty());
 
         // When & Then
         Exception exception = assertThrows(EntityNotFoundException.class,
                 () -> bookingService.deleteById(invalidId));
 
         assertEquals("Booking with id " + invalidId + " not found", exception.getMessage());
-        verify(bookingRepository).existsById(invalidId);
-        verify(bookingRepository, times(0)).deleteById(any());
+        verify(bookingRepository).findById(invalidId);
+        verify(bookingRepository, times(0)).save(any());
     }
 }

@@ -22,6 +22,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import spring.bookingapp.dto.PaymentDto;
 import spring.bookingapp.dto.PaymentRequestDto;
 import spring.bookingapp.exception.EntityNotFoundException;
@@ -79,35 +82,42 @@ class PaymentServiceImplTest {
     @Test
     @DisplayName("Create payment session - Success")
     void createPaymentSession_ValidRequest_ReturnsDto() {
-        // Given
-        PaymentRequestDto requestDto = new PaymentRequestDto();
-        requestDto.setBookingId(booking.getId());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        PaymentDto expectedDto = new PaymentDto();
-        expectedDto.setId(1L);
-        expectedDto.setSessionId(sessionId);
+        try {
+            // Given
+            PaymentRequestDto requestDto = new PaymentRequestDto();
+            requestDto.setBookingId(booking.getId());
 
-        when(bookingRepository.findById(requestDto.getBookingId())).thenReturn(Optional.of(booking));
-        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
-        when(paymentMapper.toDto(payment)).thenReturn(expectedDto);
+            PaymentDto expectedDto = new PaymentDto();
+            expectedDto.setId(1L);
+            expectedDto.setSessionId(sessionId);
 
-        // Mocking Stripe static method Session.create()
-        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getUrl()).thenReturn("http://stripe.url/checkout");
-            when(stripeSession.getId()).thenReturn(sessionId);
+            when(bookingRepository.findById(requestDto.getBookingId())).thenReturn(Optional.of(booking));
+            when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+            when(paymentMapper.toDto(payment)).thenReturn(expectedDto);
 
-            mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
-                    .thenReturn(stripeSession);
+            // Mocking Stripe static method Session.create()
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session stripeSession = mock(Session.class);
+                when(stripeSession.getUrl()).thenReturn("http://stripe.url/checkout");
+                when(stripeSession.getId()).thenReturn(sessionId);
 
-            // When
-            PaymentDto actualDto = paymentService.createPaymentSession(requestDto);
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenReturn(stripeSession);
 
-            // Then
-            assertEquals(expectedDto.getId(), actualDto.getId());
-            assertEquals(expectedDto.getSessionId(), actualDto.getSessionId());
-            verify(bookingRepository).findById(requestDto.getBookingId());
-            verify(paymentRepository).save(any(Payment.class));
+                // When
+                PaymentDto actualDto = paymentService.createPaymentSession(requestDto);
+
+                // Then
+                assertEquals(expectedDto.getId(), actualDto.getId());
+                assertEquals(expectedDto.getSessionId(), actualDto.getSessionId());
+                verify(bookingRepository).findById(requestDto.getBookingId());
+                verify(paymentRepository).save(any(Payment.class));
+            }
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
         }
     }
 
