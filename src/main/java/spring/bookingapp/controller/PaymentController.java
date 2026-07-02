@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,5 +46,15 @@ public class PaymentController {
             description = "Callback endpoint for canceled Stripe payment.")
     public PaymentDto checkCanceledPayment(@RequestParam String sessionId) {
         return paymentService.handleCanceledPayment(sessionId);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('CUSTOMER', 'MANAGER')")
+    @Operation(summary = "Get all payments",
+            description = "Get a page of payments. "
+                    + "Managers can see all or filter by user ID. Customers see only their own.")
+    public Page<PaymentDto> findAll(@RequestParam(required = false) Long userId,
+                                    Pageable pageable) {
+        return paymentService.findAll(userId, pageable);
     }
 }

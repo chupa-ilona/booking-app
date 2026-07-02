@@ -9,8 +9,13 @@ import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 import spring.bookingapp.dto.PaymentDto;
 import spring.bookingapp.dto.PaymentRequestDto;
 import spring.bookingapp.exception.EntityNotFoundException;
@@ -19,6 +24,7 @@ import spring.bookingapp.model.Booking;
 import spring.bookingapp.model.BookingStatus;
 import spring.bookingapp.model.Payment;
 import spring.bookingapp.model.PaymentStatus;
+import spring.bookingapp.model.User;
 import spring.bookingapp.repository.BookingRepository;
 import spring.bookingapp.repository.PaymentRepository;
 import spring.bookingapp.service.NotificationService;
@@ -104,13 +110,46 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentMapper.toDto(paymentRepository.save(payment));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentDto> findAll(Long userId, Pageable pageable) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        boolean isManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("MANAGER"));
+
+        if (!isManager) {
+            return paymentRepository.findAllByBookingUserId(currentUser.getId(), pageable)
+                    .map(paymentMapper::toDto);
+        }
+
+        if (userId != null) {
+            return paymentRepository.findAllByBookingUserId(userId, pageable)
+                    .map(paymentMapper::toDto);
+        }
+
+        return paymentRepository.findAll(pageable)
+                .map(paymentMapper::toDto);
+    }
+
     private SessionCreateParams createStripeSessionParams(Booking booking, long amountInCents) {
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+
+        String successUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/payments/success")
+                .queryParam("sessionId", "{CHECKOUT_SESSION_ID}")
+                .build().toUriString();
+
+        String cancelUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .path("/payments/cancel")
+                .queryParam("sessionId", "{CHECKOUT_SESSION_ID}")
+                .build().toUriString();
+
         return SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(
-                        "http://localhost:8088/payments/success?sessionId={CHECKOUT_SESSION_ID}")
-                .setCancelUrl(
-                        "http://localhost:8088/payments/cancel?sessionId={CHECKOUT_SESSION_ID}")
+                .setSuccessUrl(successUrl)
+                .setCancelUrl(cancelUrl)
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -119,14 +158,10 @@ public class PaymentServiceImpl implements PaymentService {
                                                 .setCurrency("usd")
                                                 .setUnitAmount(amountInCents)
                                                 .setProductData(
-                                                        SessionCreateParams
-                                                                .LineItem
-                                                                .PriceData
-                                                                .ProductData
-                                                                .builder()
+                                                        SessionCreateParams.LineItem.PriceData
+                                                                .ProductData.builder()
                                                                 .setName("Booking accommodation: "
-                                                                        + booking
-                                                                        .getAccommodation()
+                                                                        + booking.getAccommodation()
                                                                         .getType())
                                                                 .build()
                                                 )
