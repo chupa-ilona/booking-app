@@ -112,11 +112,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
-        if (!bookingRepository.existsById(id)) {
-            throw new EntityNotFoundException("Booking with id " + id + " not found");
-        }
-        bookingRepository.deleteById(id);
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Booking with id " + id + " not found"));
 
+        if (booking.getStatus() == BookingStatus.CANCELED) {
+            throw new IllegalArgumentException("This booking is already canceled.");
+        }
+
+        booking.setStatus(BookingStatus.CANCELED);
+        bookingRepository.save(booking);
+        notificationService.sendBookingCanceledMessage(booking);
     }
 }

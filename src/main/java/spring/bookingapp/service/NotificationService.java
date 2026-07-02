@@ -11,4 +11,6 @@ public interface NotificationService {
     void sendBookingExpiredMessage(Booking booking);
 
     void sendNoExpiredBookingsMessage();
+
+    void sendBookingCanceledMessage(Booking booking);
 }
