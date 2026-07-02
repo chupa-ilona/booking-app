@@ -30,27 +30,43 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final AccommodationRepository accommodationRepository;
     private final NotificationService notificationService;
+    private final spring.bookingapp.repository.PaymentRepository paymentRepository;
 
     @Override
     @Transactional
     public BookingDto save(CreateBookingRequestDto requestDto) {
+
+        if (requestDto.getCheckInDate().isBefore(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past");
+        }
+        if (!requestDto.getCheckOutDate().isAfter(requestDto.getCheckInDate())) {
+            throw new IllegalArgumentException("Check-out date must be strictly after check-in date");
+        }
+
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
+
+        boolean hasPendingPayments = paymentRepository.existsByBookingUserIdAndStatus(
+                currentUser.getId(), spring.bookingapp.model.PaymentStatus.PENDING);
+
+        if (hasPendingPayments) {
+            throw new IllegalStateException("You cannot create a new booking because you have a pending payment.");
+        }
 
         Accommodation accommodation = accommodationRepository
                 .findById(requestDto.getAccommodationId())
                 .orElseThrow(() -> new EntityNotFoundException("Accommodation with id "
                         + requestDto.getAccommodationId() + " not found"));
 
-        boolean isOverlapping = bookingRepository.existsOverlappingBooking(
+        Long overlappingBookingsCount = bookingRepository.countOverlappingBookings(
                 requestDto.getAccommodationId(),
                 requestDto.getCheckInDate(),
                 requestDto.getCheckOutDate(),
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
         );
 
-        if (isOverlapping) {
-            throw new IllegalArgumentException("The accommodation is not available for the selected dates");
+        if (overlappingBookingsCount >= accommodation.getAvailability()) {
+            throw new IllegalArgumentException("The accommodation is fully booked for the selected dates");
         }
 
         Booking booking = bookingMapper.toModel(requestDto);
