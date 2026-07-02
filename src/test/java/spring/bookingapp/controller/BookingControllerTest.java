@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,12 +18,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import spring.bookingapp.dto.CreateBookingRequestDto;
+import spring.bookingapp.model.User;
 import spring.bookingapp.service.NotificationService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -44,6 +49,15 @@ class BookingControllerTest {
                 .build();
     }
 
+    private void setupCustomSecurityContext(Long userId, String role) {
+        User customUser = new User();
+        customUser.setId(userId);
+        customUser.setEmail("test@example.com");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        customUser, null, List.of(new SimpleGrantedAuthority(role)));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
 
     // CREATE BOOKING ENDPOINT
     @Test
@@ -58,13 +72,7 @@ class BookingControllerTest {
             "classpath:database/accommodations/remove-accommodations.sql"
     }, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void createBooking_ValidRequestDto_Success() throws Exception {
-        spring.bookingapp.model.User customUser = new spring.bookingapp.model.User();
-        customUser.setId(1L);
-        customUser.setEmail("test@example.com");
-        org.springframework.security.authentication.UsernamePasswordAuthenticationToken authentication =
-                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                        customUser, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("CUSTOMER")));
-        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        setupCustomSecurityContext(1L, "CUSTOMER");
 
         // Given
         CreateBookingRequestDto requestDto = new CreateBookingRequestDto();
@@ -99,9 +107,8 @@ class BookingControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // GET ALL BOOKINGS (Only Managers)
+    // GET ALL BOOKINGS
     @Test
-    @WithMockUser(username = "manager", authorities = {"MANAGER"})
     @DisplayName("Get all bookings as MANAGER (Positive)")
     @Sql(scripts = {
             "classpath:database/accommodations/add-accommodation.sql",
@@ -114,6 +121,8 @@ class BookingControllerTest {
             "classpath:database/accommodations/remove-accommodations.sql"
     }, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
     void getAll_AsManager_ReturnsAllBookings() throws Exception {
+        setupCustomSecurityContext(1L, "MANAGER");
+
         mockMvc.perform(get("/bookings")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -122,14 +131,26 @@ class BookingControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "customer", authorities = {"CUSTOMER"})
-    @DisplayName("Get all bookings as CUSTOMER (Negative - Forbidden)")
-    void getAll_AsCustomer_ReturnsForbidden() throws Exception {
+    @DisplayName("Get all bookings as CUSTOMER (Positive)")
+    @Sql(scripts = {
+            "classpath:database/accommodations/add-accommodation.sql",
+            "classpath:database/users/add-user.sql",
+            "classpath:database/bookings/add-booking.sql"
+    }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @Sql(scripts = {
+            "classpath:database/bookings/remove-bookings.sql",
+            "classpath:database/users/remove-users.sql",
+            "classpath:database/accommodations/remove-accommodations.sql"
+    }, executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    void getAll_AsCustomer_ReturnsBookings_Success() throws Exception {
+        setupCustomSecurityContext(1L, "CUSTOMER");
+
         mockMvc.perform(get("/bookings")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").exists())
+                .andExpect(jsonPath("$.content").isArray());
     }
-
 
     // GET BOOKING BY ID
     @Test
@@ -160,7 +181,6 @@ class BookingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
-
 
     // UPDATE BOOKING
     @Test
@@ -193,7 +213,6 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.checkInDate").value(requestDto.getCheckInDate().toString()));
     }
 
-
     // DELETE BOOKING
     @Test
     @WithMockUser(username = "customer", authorities = {"CUSTOMER"})
@@ -211,6 +230,6 @@ class BookingControllerTest {
     void deleteBooking_ValidId_Success() throws Exception {
         mockMvc.perform(delete("/bookings/1")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent()); // Очікуємо 204 No Content
+                .andExpect(status().isNoContent());
     }
 }

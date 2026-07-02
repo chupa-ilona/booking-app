@@ -125,7 +125,7 @@ class PaymentServiceImplTest {
                 () -> paymentService.createPaymentSession(requestDto));
 
         assertEquals("Booking with id 999 not found", exception.getMessage());
-        verify(bookingRepository, times(1)).findById(requestDto.getBookingId());
+        verify(bookingRepository).findById(requestDto.getBookingId());
         verify(paymentRepository, times(0)).save(any());
     }
 

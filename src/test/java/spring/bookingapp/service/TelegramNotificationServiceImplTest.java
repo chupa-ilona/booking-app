@@ -14,7 +14,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import spring.bookingapp.model.*;
+import spring.bookingapp.model.Accommodation;
+import spring.bookingapp.model.AccommodationType;
+import spring.bookingapp.model.Booking;
+import spring.bookingapp.model.BookingStatus;
+import spring.bookingapp.model.User;
 import spring.bookingapp.service.impl.TelegramNotificationServiceImpl;
 import spring.bookingapp.telegram.BookingTelegramBot;
 
@@ -56,7 +60,7 @@ class TelegramNotificationServiceImplTest {
         notificationService.sendBookingConfirmation(booking);
 
         // Then
-        verify(telegramBot, times(1)).sendMessage(messageCaptor.capture());
+        verify(telegramBot).sendMessage(messageCaptor.capture());
         String actualMessage = messageCaptor.getValue();
 
         assertTrue(actualMessage.contains("Нове бронювання створено!"));

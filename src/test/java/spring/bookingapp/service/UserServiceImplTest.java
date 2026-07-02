@@ -106,7 +106,8 @@ class UserServiceImplTest {
         Exception exception = assertThrows(RegistrationException.class,
                 () -> userService.register(requestDto));
 
-        assertEquals("User with email " + requestDto.getEmail() + " already exists", exception.getMessage());
+        assertEquals("User with email "
+                + requestDto.getEmail() + " already exists", exception.getMessage());
         verify(userRepository).findByEmail(requestDto.getEmail());
         verify(userRepository, times(0)).save(any(User.class));
     }
