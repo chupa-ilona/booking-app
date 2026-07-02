@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-admin-user
+      author: ilonachupa
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  value: 99
+              - column:
+                  name: email
+                  value: 'admin@booking.com'
+              - column:
+                  name: password
+                  value: '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNahGWAl8nd41B.1O2z.9Jq'
+              - column:
+                  name: first_name
+                  value: 'Admin'
+              - column:
+                  name: last_name
+                  value: 'Manager'
+              - column:
+                  name: is_deleted
+                  valueBoolean: false
+
+  - changeSet:
+      id: assign-admin-role-to-admin-user
+      author: ilonachupa
+      changes:
+        - insert:
+            tableName: users_roles
+            columns:
+              - column:
+                  name: user_id
+                  value: 99
+              - column:
+                  name: role_id
+                  value: 2
