@@ -656,18 +656,6 @@ src
  
 ---
 
-## 🚀 Future Improvements
-
-Based on the current implementation, natural next steps for this codebase include:
-
-- **Dockerize the application itself** — currently only MySQL is containerized via `docker-compose.yml`; adding a `Dockerfile` and an `app` service would enable a true one‑command `docker compose up` for the whole stack.
-- **Stripe webhook verification** — the `/payments/success` and `/payments/cancel` endpoints currently trust client‑supplied redirects; migrating to signed Stripe **webhook events** would remove that trust dependency.
-- **User‑facing management endpoints** — there is no controller for updating a user's own profile, changing password, or promoting a user to `MANAGER`; today role assignment is fixed to `CUSTOMER` at registration.
-- **Refresh tokens** — the JWT has a fixed 10‑hour (`36000000` ms) expiration with no refresh mechanism, requiring re‑login once it expires.
-- **Testcontainers-based integration tests** — `testcontainers` (MySQL) is already a declared dependency but unused; wiring it into the repository/service test suites would validate against real MySQL behavior instead of H2.
-- **Postman collection** — publishing a ready‑made collection would speed up manual API exploration alongside the existing Swagger UI.
-- **Rate limiting on `/auth/login`** — to harden against brute‑force credential attempts.
-- **Per‑user Telegram routing** — notifications currently go to a single shared `telegram.chat.id`; per‑customer or per‑manager delivery would improve targeting at scale.
 ---
 
 <div align="center">
